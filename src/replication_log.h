@@ -18,6 +18,7 @@
 #define	REPLICATION_LOG_H
 
 #include <sys/time.h>
+#include <stdio.h>
 #include <time.h>
 
 enum replication_log_level {

@@ -1,0 +1,109 @@
+---
+kind: pipeline
+name: linux-amd64
+
+clone:
+  depth: 1
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: cstor-istgt
+    image: openebs/cstor-ubuntu:xenial-20190515
+    commands:
+      - apt-get update
+      - apt-get install -y autoconf build-essential libjson-c-dev libssl-dev wget
+      - bash autogen.sh
+      - ./configure --enable-replication
+      - make clean
+      - make
+      - cp src/istgt ./docker
+      - cp src/istgtcontrol ./docker
+      - cp src/istgt.conf ./docker
+      - cp src/istgtcontrol.conf ./docker
+    environment:
+      TRAVIS_BRANCH: v1.7.x
+
+  - name: cstor-istgt-image
+    image: plugins/docker
+    settings:
+      dockerfile: docker/Dockerfile
+      context: docker
+      registry: quay.io
+      repo: quay.io/josua-sr/cstor-istgt
+      tag: 1.7.0-amd64
+      username:
+        from_secret: quay_username
+      password:
+        from_secret: quay_password
+
+---
+kind: pipeline
+name: linux-arm64
+
+clone:
+  depth: 1
+
+platform:
+  os: linux
+  arch: arm64
+
+steps:
+  - name: cstor-istgt
+    image: arm64v8/ubuntu:18.04
+    commands:
+      - apt-get update
+      - apt-get install -y autoconf build-essential libjson-c-dev libssl-dev wget
+      - bash autogen.sh
+      - ./configure --enable-replication
+      - make clean
+      - make
+      - cp src/istgt ./docker
+      - cp src/istgtcontrol ./docker
+      - cp src/istgt.conf ./docker
+      - cp src/istgtcontrol.conf ./docker
+    environment:
+      TRAVIS_BRANCH: v1.7.x
+
+  - name: cstor-istgt-image
+    image: plugins/docker
+    settings:
+      dockerfile: docker/Dockerfile.arm64
+      context: docker
+      registry: quay.io
+      repo: quay.io/josua-sr/cstor-istgt
+      tag: 1.7.0-arm64
+      username:
+        from_secret: quay_username
+      password:
+        from_secret: quay_password
+
+---
+kind: pipeline
+name: manifest
+
+clone:
+  depth: 1
+
+platform:
+  os: linux
+
+steps:
+  - name: cstor-istgt-image
+    image: plugins/manifest
+    settings:
+      target: quay.io/josua-sr/cstor-istgt:1.7.0
+      template: quay.io/josua-sr/cstor-istgt:1.7.0-ARCH
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      username:
+        from_secret: quay_username
+      password:
+        from_secret: quay_password
+
+depends_on:
+- linux-amd64
+- linux-arm64
